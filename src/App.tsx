@@ -18,7 +18,7 @@ function App() {
   const [shapes,setShapes] = useState<Shapes[]>([]);
   const [currentShape,setCurrentShape] = useState<Shapes | null>(null)
   const [selectedShape,setSelectedShape] = useState<ShapeType>('rectangle')
-  
+  const [scale,setScale] = useState(1);
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if(!canvas) return;
@@ -30,6 +30,7 @@ function App() {
     ctx.fillStyle = "rgba(18,18,18,255)"
     ctx.fillRect(0,0,canvas.width,canvas.height)
     
+    ctx.scale(scale,scale)
     ctx.strokeStyle = 'white'
     
     const drawShape = (shape:Shapes) => {
@@ -88,7 +89,7 @@ function App() {
     if(currentShape){
       drawShape(currentShape);
     }
-  },[shapes,currentShape])
+  },[shapes,currentShape,scale])
 
   useEffect(()=>{
     const storedShapes = localStorage.getItem('shapes');
@@ -172,6 +173,11 @@ function App() {
     redrawCanvas()
   },[isDrawing,startPos,redrawCanvas,selectedShape])
 
+  const handleWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    //console.log(e.deltaY)
+    setScale((prev)=> Math.min(Math.max(prev - e.deltaY * 0.001, 0.05),3))
+  }
   useEffect(()=>{
     const canvas = canvasRef.current;
     if(!canvas) return;
@@ -179,11 +185,13 @@ function App() {
     canvas.addEventListener('mousedown',handleMouseDown)
     canvas.addEventListener('mouseup',handleMouseUp);
     canvas.addEventListener('mousemove',handleMouseMove);
+    canvas.addEventListener('wheel',handleWheel);
     
     return () => {
       canvas.removeEventListener('mousedown',handleMouseDown);
       canvas.removeEventListener('mouseup',handleMouseUp);
       canvas.removeEventListener('mousemove',handleMouseMove);
+      canvas.removeEventListener('wheel',handleWheel);
     }
   },[handleMouseDown, handleMouseUp,handleMouseMove])
   console.log(selectedShape)
