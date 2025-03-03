@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type ShapeType = "rectangle" | "ellipse" | "line" | "arrow";
+type ShapeType = "rectangle" | "ellipse" | "line" | "arrow" | "panning";
 
 type Shapes = {
 	type: ShapeType;
@@ -12,15 +12,15 @@ type Shapes = {
 	endY?: number;
 };
 
-
 type ZoomState = {
 	scale: number;
-		originX: number;
-		originY: number;
-		zoomFactor: number;
-		minScale: number;
-		maxScale: number;
-}
+	originX: number;
+	originY: number;
+	zoomFactor: number;
+	minScale: number;
+	maxScale: number;
+};
+
 function App() {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const [isDrawing, setIsDrawing] = useState(false);
@@ -34,45 +34,29 @@ function App() {
 		originY: 0,
 		zoomFactor: 1.1,
 		minScale: 0.1,
-		maxScale: 5
+		maxScale: 30,
 	});
-	const mouseRef = useRef({ x: 0, y: 0, wheel: 0 });
 
-	const updateZoom = useCallback(()=>{
-		setZoomState((prev) => {
-			let newScale = prev.scale
-			if(mouseRef.current.wheel !== 0){
-				const {x,y,wheel} = mouseRef.current;
-				const newTargetX = x
-				const newTargetY = y;
-
-				if(wheel < 0){
-					newScale = Math.min(prev.scale * prev.zoomFactor,prev.maxScale);
-				}else {
-					newScale = Math.max(prev.scale / prev.zoomFactor, prev.minScale)
-				}
-				const scaleRatio = newScale/prev.scale
-				return {
-					...prev,
-					scale: newScale,
-					originX: newTargetX - (newTargetX - prev.originX) * scaleRatio,
-					originY: newTargetY - (newTargetY - prev.originY) * scaleRatio
-				}
-			}
-			return prev;
-		})
-	},[])
 	const redrawCanvas = useCallback(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
-		ctx.setTransform(1,0,0,1,0,1)
+
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		ctx.fillStyle = "rgba(18,18,18,255)";
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		ctx.setTransform(zoomState.scale, 0,0,zoomState.scale,zoomState.originX,zoomState.originY)
+
+		ctx.setTransform(
+			zoomState.scale,
+			0,
+			0,
+			zoomState.scale,
+			zoomState.originX,
+			zoomState.originY,
+		);
 		ctx.strokeStyle = "white";
 
 		const drawShape = (shape: Shapes) => {
@@ -124,9 +108,6 @@ function App() {
 					ctx.lineTo(x1, y1);
 					ctx.moveTo(shape.endX!, shape.endY!);
 					ctx.lineTo(x2, y2);
-					//ctx.lineTo(shape.endX!, shape.endY!);
-					// ctx.fillStyle = "white";
-					// ctx.fill();
 					ctx.stroke();
 					break;
 				}
@@ -134,12 +115,14 @@ function App() {
 		};
 
 		shapes.forEach(drawShape);
-
 		if (currentShape) {
 			drawShape(currentShape);
 		}
-		
-	}, [shapes, currentShape,zoomState]);
+	}, [shapes, currentShape, zoomState]);
+
+	useEffect(() => {
+		redrawCanvas();
+	}, [zoomState, redrawCanvas]);
 
 	useEffect(() => {
 		const storedShapes = localStorage.getItem("shapes");
@@ -170,48 +153,63 @@ function App() {
 		};
 	}, [redrawCanvas]);
 
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	const getCursorPostion = (e: MouseEvent) => {
-		const canvas = canvasRef.current;
-		if(!canvas) return {x:0,y:0}
-    	const rect = canvas.getBoundingClientRect();
-    	return {
-      		x: (e.clientX - rect.left - zoomState.originX) / zoomState.scale,
-      		y: (e.clientY - rect.top - zoomState.originY) / zoomState.scale,
-    	};
-	};
+	const getCursorPosition = useCallback(
+		(e: MouseEvent) => {
+			const canvas = canvasRef.current;
+			if (!canvas) return { x: 0, y: 0 };
+			const rect = canvas.getBoundingClientRect();
+			return {
+				x: (e.clientX - rect.left - zoomState.originX) / zoomState.scale,
+				y: (e.clientY - rect.top - zoomState.originY) / zoomState.scale,
+			};
+		},
+		[zoomState],
+	);
+
 	const handleWheel = useCallback((e: WheelEvent) => {
 		e.preventDefault();
-		const position = getCursorPostion(e)
-		mouseRef.current.x = position.x
-		mouseRef.current.y = position.y
-		mouseRef.current.wheel = e.deltaY;
-		updateZoom()
-	},[getCursorPostion, updateZoom]);
+		setZoomState((prev) => {
+			const canvas = canvasRef.current;
+			if (!canvas) return prev;
+			const rect = canvas.getBoundingClientRect();
+			const pointerX = (e.clientX - rect.left - prev.originX) / prev.scale;
+			const pointerY = (e.clientY - rect.top - prev.originY) / prev.scale;
+			const zoomSensitivity = 0.001; // adjust sensitivity as needed
+			const factor = Math.exp(-e.deltaY * zoomSensitivity);
+			const newScale = Math.max(
+				Math.min(prev.scale * factor, prev.maxScale),
+				prev.minScale,
+			);
+			const scaleRatio = newScale / prev.scale;
+			return {
+				...prev,
+				scale: newScale,
+				originX: pointerX - (pointerX - prev.originX) * scaleRatio,
+				originY: pointerY - (pointerY - prev.originY) * scaleRatio,
+			};
+		});
+	}, []);
 
-	const handleMouseDown = useCallback((e: MouseEvent) => {
-		console.log("mouse down at", e.clientX, e.clientY);
-		setIsDrawing(true);
-		setStartPos(getCursorPostion(e));
-	}, [getCursorPostion]);
-
-	const handleMouseUp = useCallback(
+	const handleMouseDown = useCallback(
 		(e: MouseEvent) => {
-			console.log("mouse up at", e.clientX, e.clientY);
-			if (currentShape) {
-				setShapes((prevShapes) => [...prevShapes, currentShape]);
-			}
-			setIsDrawing(false);
-			setCurrentShape(null);
+			setIsDrawing(true);
+			setStartPos(getCursorPosition(e));
 		},
-		[currentShape],
+		[getCursorPosition],
 	);
+
+	const handleMouseUp = useCallback(() => {
+		if (currentShape) {
+			setShapes((prevShapes) => [...prevShapes, currentShape]);
+		}
+		setIsDrawing(false);
+		setCurrentShape(null);
+	}, [currentShape]);
 
 	const handleMouseMove = useCallback(
 		(e: MouseEvent) => {
 			if (!isDrawing) return;
-
-			const { x, y } = getCursorPostion(e);
+			const { x, y } = getCursorPosition(e);
 
 			let newShape: Shapes;
 			if (selectedShape === "line" || selectedShape === "arrow") {
@@ -236,11 +234,53 @@ function App() {
 			setCurrentShape(newShape);
 			redrawCanvas();
 		},
-		[isDrawing, startPos, redrawCanvas, selectedShape,getCursorPostion],
+		[isDrawing, startPos, redrawCanvas, selectedShape, getCursorPosition],
 	);
-	
-	
-	
+
+	// Zoom buttons use the center of the canvas as the target.
+	const handleZoomIn = () => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+		const centerX = canvas.width / 2;
+		const centerY = canvas.height / 2;
+		setZoomState((prev) => {
+			const newScale = Math.min(prev.scale * prev.zoomFactor, prev.maxScale);
+			const scaleRatio = newScale / prev.scale;
+			return {
+				...prev,
+				scale: newScale,
+				originX: centerX - (centerX - prev.originX) * scaleRatio,
+				originY: centerY - (centerY - prev.originY) * scaleRatio,
+			};
+		});
+	};
+
+	const handleZoomOut = () => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+		const centerX = canvas.width / 2;
+		const centerY = canvas.height / 2;
+		setZoomState((prev) => {
+			const newScale = Math.max(prev.scale / prev.zoomFactor, prev.minScale);
+			const scaleRatio = newScale / prev.scale;
+			return {
+				...prev,
+				scale: newScale,
+				originX: centerX - (centerX - prev.originX) * scaleRatio,
+				originY: centerY - (centerY - prev.originY) * scaleRatio,
+			};
+		});
+	};
+
+	const handleResetZoom = () => {
+		setZoomState((prev) => ({
+			...prev,
+			scale: 1,
+			originX: 0,
+			originY: 0,
+		}));
+	};
+
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -248,7 +288,7 @@ function App() {
 		canvas.addEventListener("mousedown", handleMouseDown);
 		canvas.addEventListener("mouseup", handleMouseUp);
 		canvas.addEventListener("mousemove", handleMouseMove);
-		canvas.addEventListener("wheel", handleWheel);
+		canvas.addEventListener("wheel", handleWheel, { passive: false });
 
 		return () => {
 			canvas.removeEventListener("mousedown", handleMouseDown);
@@ -257,13 +297,28 @@ function App() {
 			canvas.removeEventListener("wheel", handleWheel);
 		};
 	}, [handleMouseDown, handleMouseUp, handleMouseMove, handleWheel]);
-	console.log(selectedShape);
+
 	return (
 		<div>
 			<div className="absolute top-2.5 left-2.5 z-10">
 				<div className="flex gap-1 bg-[#232329]">
 					<label
-						className={`${selectedShape === "rectangle" ? "bg-[#403e6a]" : ""} cursor-pointer`}
+						className={`${selectedShape === "panning" ? "bg-[#403e6a]" : ""
+							} cursor-pointer`}
+					>
+						<input
+							className="opacity-0"
+							type="radio"
+							name="select_shape"
+							id="panning"
+							checked={selectedShape === "panning"}
+							onChange={() => setSelectedShape("panning")}
+						/>
+						<span className="text-white">Panning</span>
+					</label>
+					<label
+						className={`${selectedShape === "rectangle" ? "bg-[#403e6a]" : ""
+							} cursor-pointer`}
 					>
 						<input
 							className="opacity-0"
@@ -276,7 +331,8 @@ function App() {
 						<span className="text-white">rectangle</span>
 					</label>
 					<label
-						className={`${selectedShape === "ellipse" ? "bg-[#403e6a]" : ""} cursor-pointer`}
+						className={`${selectedShape === "ellipse" ? "bg-[#403e6a]" : ""
+							} cursor-pointer`}
 					>
 						<input
 							className="opacity-0"
@@ -289,7 +345,8 @@ function App() {
 						<span className="text-white">ellipse</span>
 					</label>
 					<label
-						className={`${selectedShape === "line" ? "bg-[#403e6a]" : ""} cursor-pointer`}
+						className={`${selectedShape === "line" ? "bg-[#403e6a]" : ""
+							} cursor-pointer`}
 					>
 						<input
 							className="opacity-0"
@@ -302,7 +359,8 @@ function App() {
 						<span className="text-white">line</span>
 					</label>
 					<label
-						className={`${selectedShape === "arrow" ? "bg-[#403e6a]" : ""} cursor-pointer`}
+						className={`${selectedShape === "arrow" ? "bg-[#403e6a]" : ""
+							} cursor-pointer`}
 					>
 						<input
 							className="opacity-0"
@@ -315,6 +373,13 @@ function App() {
 						<span className="text-white">arrow</span>
 					</label>
 				</div>
+			</div>
+			<div className="absolute bottom-2.5 left-2.5 z-10 flex gap-2 bg-[#232329] p-1 rounded">
+				<button onClick={handleZoomOut}>-</button>
+				<button onClick={handleResetZoom}>
+					{Math.round(zoomState.scale * 100)}
+				</button>
+				<button onClick={handleZoomIn}>+</button>
 			</div>
 			<canvas ref={canvasRef}></canvas>
 		</div>
