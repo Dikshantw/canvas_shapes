@@ -37,6 +37,10 @@ function App() {
 		maxScale: 30,
 	});
 
+	const [isPanning, setIsPanning] = useState(false);
+	const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+	const [originAtPanStart, setOriginAtPanStart] = useState({ x: 0, y: 0 });
+
 	const redrawCanvas = useCallback(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -192,22 +196,54 @@ function App() {
 
 	const handleMouseDown = useCallback(
 		(e: MouseEvent) => {
-			setIsDrawing(true);
-			setStartPos(getCursorPosition(e));
+			console.log(selectedShape);
+			if (selectedShape === "panning") {
+				setIsPanning(true);
+				setPanStart({ x: e.clientX, y: e.clientY });
+				setOriginAtPanStart({ x: zoomState.originX, y: zoomState.originY });
+				console.log(
+					"panning",
+					setIsPanning,
+					" ",
+					"panStatrt",
+					setPanStart,
+					" ",
+					"originpan",
+					setOriginAtPanStart,
+				);
+			} else {
+				setIsDrawing(true);
+				setStartPos(getCursorPosition(e));
+			}
 		},
-		[getCursorPosition],
+		[getCursorPosition, selectedShape, zoomState.originX, zoomState.originY],
 	);
 
 	const handleMouseUp = useCallback(() => {
+		if (selectedShape === "panning") {
+			setIsPanning(false);
+			return;
+		}
 		if (currentShape) {
 			setShapes((prevShapes) => [...prevShapes, currentShape]);
 		}
 		setIsDrawing(false);
 		setCurrentShape(null);
-	}, [currentShape]);
+	}, [currentShape, selectedShape]);
 
 	const handleMouseMove = useCallback(
 		(e: MouseEvent) => {
+			if (selectedShape === "panning" && isPanning) {
+				const dx = e.clientX - panStart.x;
+				const dy = e.clientY - panStart.y;
+				setZoomState((prev) => ({
+					...prev,
+					originX: originAtPanStart.x + dx,
+					originY: originAtPanStart.y + dy,
+				}));
+				redrawCanvas();
+				return;
+			}
 			if (!isDrawing) return;
 			const { x, y } = getCursorPosition(e);
 
@@ -234,7 +270,16 @@ function App() {
 			setCurrentShape(newShape);
 			redrawCanvas();
 		},
-		[isDrawing, startPos, redrawCanvas, selectedShape, getCursorPosition],
+		[
+			isDrawing,
+			isPanning,
+			panStart,
+			originAtPanStart,
+			startPos,
+			redrawCanvas,
+			selectedShape,
+			getCursorPosition,
+		],
 	);
 
 	// Zoom buttons use the center of the canvas as the target.
