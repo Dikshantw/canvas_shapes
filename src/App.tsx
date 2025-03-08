@@ -1,3 +1,10 @@
+import {
+	Circle,
+	Hand,
+	Minus,
+	MoveRight,
+	RectangleHorizontal,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type ShapeType = "rectangle" | "ellipse" | "line" | "arrow" | "panning";
@@ -344,9 +351,9 @@ function App() {
 	}, [handleMouseDown, handleMouseUp, handleMouseMove, handleWheel]);
 
 	return (
-		<div>
-			<div className="absolute top-2.5 left-2.5 z-10">
-				<div className="flex gap-1 bg-[#232329]">
+		<div className="overflow-hidden">
+			<div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-4 bg-white rounded-lg shadow-lg p-1 animate-fade-in">
+				<div className="flex items-center space-x-1 px-1">
 					<label
 						className={`${selectedShape === "panning" ? "bg-[#403e6a]" : ""
 							} cursor-pointer`}
@@ -359,7 +366,7 @@ function App() {
 							checked={selectedShape === "panning"}
 							onChange={() => setSelectedShape("panning")}
 						/>
-						<span className="text-white">Panning</span>
+						<Hand size={24} />
 					</label>
 					<label
 						className={`${selectedShape === "rectangle" ? "bg-[#403e6a]" : ""
@@ -373,7 +380,7 @@ function App() {
 							checked={selectedShape === "rectangle"}
 							onChange={() => setSelectedShape("rectangle")}
 						/>
-						<span className="text-white">rectangle</span>
+						<RectangleHorizontal />
 					</label>
 					<label
 						className={`${selectedShape === "ellipse" ? "bg-[#403e6a]" : ""
@@ -387,7 +394,7 @@ function App() {
 							checked={selectedShape === "ellipse"}
 							onChange={() => setSelectedShape("ellipse")}
 						/>
-						<span className="text-white">ellipse</span>
+						<Circle />
 					</label>
 					<label
 						className={`${selectedShape === "line" ? "bg-[#403e6a]" : ""
@@ -401,7 +408,7 @@ function App() {
 							checked={selectedShape === "line"}
 							onChange={() => setSelectedShape("line")}
 						/>
-						<span className="text-white">line</span>
+						<Minus />
 					</label>
 					<label
 						className={`${selectedShape === "arrow" ? "bg-[#403e6a]" : ""
@@ -415,7 +422,7 @@ function App() {
 							checked={selectedShape === "arrow"}
 							onChange={() => setSelectedShape("arrow")}
 						/>
-						<span className="text-white">arrow</span>
+						<MoveRight />
 					</label>
 				</div>
 			</div>
