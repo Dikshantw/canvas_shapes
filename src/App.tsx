@@ -1,16 +1,10 @@
-import {
-	Circle,
-	Hand,
-	Minus,
-	MoveRight,
-	RectangleHorizontal,
-} from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
 
-type ShapeType = "rectangle" | "ellipse" | "line" | "arrow" | "panning";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Toolbar from "./components/Toolbar";
+import { DrawingTools } from "./types/drawings";
 
 type Shapes = {
-	type: ShapeType;
+	type: DrawingTools;
 	x: number;
 	y: number;
 	width: number;
@@ -34,7 +28,7 @@ function App() {
 	const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 	const [shapes, setShapes] = useState<Shapes[]>([]);
 	const [currentShape, setCurrentShape] = useState<Shapes | null>(null);
-	const [selectedShape, setSelectedShape] = useState<ShapeType>("rectangle");
+	const [selectedShape, setSelectedShape] = useState<DrawingTools>("Rectangle");
 	const [zoomState, setZoomState] = useState<ZoomState>({
 		scale: 1,
 		originX: 0,
@@ -72,10 +66,10 @@ function App() {
 
 		const drawShape = (shape: Shapes) => {
 			switch (shape.type) {
-				case "rectangle":
+				case "Rectangle":
 					ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
 					break;
-				case "ellipse":
+				case "Ellipse":
 					ctx.beginPath();
 					ctx.ellipse(
 						shape.x + shape.width / 2,
@@ -88,13 +82,13 @@ function App() {
 					);
 					ctx.stroke();
 					break;
-				case "line":
+				case "Line":
 					ctx.beginPath();
 					ctx.moveTo(shape.x, shape.y);
 					ctx.lineTo(shape.endX!, shape.endY!);
 					ctx.stroke();
 					break;
-				case "arrow": {
+				case "Arrow": {
 					ctx.beginPath();
 					ctx.moveTo(shape.x, shape.y);
 					ctx.lineTo(shape.endX!, shape.endY!);
@@ -204,7 +198,7 @@ function App() {
 	const handleMouseDown = useCallback(
 		(e: MouseEvent) => {
 			console.log(selectedShape);
-			if (selectedShape === "panning") {
+			if (selectedShape === "Pan") {
 				setIsPanning(true);
 				setPanStart({ x: e.clientX, y: e.clientY });
 				setOriginAtPanStart({ x: zoomState.originX, y: zoomState.originY });
@@ -227,7 +221,7 @@ function App() {
 	);
 
 	const handleMouseUp = useCallback(() => {
-		if (selectedShape === "panning") {
+		if (selectedShape === "Pan") {
 			setIsPanning(false);
 			return;
 		}
@@ -240,7 +234,7 @@ function App() {
 
 	const handleMouseMove = useCallback(
 		(e: MouseEvent) => {
-			if (selectedShape === "panning" && isPanning) {
+			if (selectedShape === "Pan" && isPanning) {
 				const dx = e.clientX - panStart.x;
 				const dy = e.clientY - panStart.y;
 				setZoomState((prev) => ({
@@ -255,7 +249,7 @@ function App() {
 			const { x, y } = getCursorPosition(e);
 
 			let newShape: Shapes;
-			if (selectedShape === "line" || selectedShape === "arrow") {
+			if (selectedShape === "Line" || selectedShape === "Arrow") {
 				newShape = {
 					type: selectedShape,
 					x: startPos.x,
@@ -352,7 +346,7 @@ function App() {
 
 	return (
 		<div className="overflow-hidden">
-			<div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-4 bg-white rounded-lg shadow-lg p-1 animate-fade-in">
+			{/* <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-4 bg-white rounded-lg shadow-lg p-1 animate-fade-in">
 				<div className="flex items-center space-x-1 px-1">
 					<label
 						className={`${selectedShape === "panning" ? "bg-[#403e6a]" : ""
@@ -425,7 +419,7 @@ function App() {
 						<MoveRight />
 					</label>
 				</div>
-			</div>
+			</div> */}
 			<div className="absolute bottom-2.5 left-2.5 z-10 flex gap-2 bg-[#232329] p-1 rounded">
 				<button onClick={handleZoomOut}>-</button>
 				<button onClick={handleResetZoom}>
@@ -433,6 +427,9 @@ function App() {
 				</button>
 				<button onClick={handleZoomIn}>+</button>
 			</div>
+
+			{/* Toolbar */}
+			<Toolbar selectedShape={selectedShape} setSelectedShape={setSelectedShape}/>
 			<canvas ref={canvasRef}></canvas>
 		</div>
 	);
