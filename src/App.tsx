@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Toolbar from "./components/Toolbar";
 import { DrawingTools } from "./types/drawings";
+import { Minus, Plus } from "lucide-react";
 
 type Shapes = {
 	type: DrawingTools;
@@ -420,16 +421,27 @@ function App() {
 					</label>
 				</div>
 			</div> */}
-			<div className="absolute bottom-2.5 left-2.5 z-10 flex gap-2 bg-[#232329] p-1 rounded">
-				<button onClick={handleZoomOut}>-</button>
-				<button onClick={handleResetZoom}>
+			<div className="absolute bottom-2.5 left-2.5 z-10 flex gap-2 bg-[#232329] text-[#e3e3e8] p-1 rounded">
+				<button 
+					onClick={handleZoomOut}
+					className="cursor-pointer flex justify-center items-center"
+					><Minus size={16}/></button>
+				<button 
+					onClick={handleResetZoom}
+					className="w-14"
+				>
 					{Math.round(zoomState.scale * 100)}
 				</button>
-				<button onClick={handleZoomIn}>+</button>
+				<button 
+					onClick={handleZoomIn}
+					className="cursor-pointer flex justify-center items-center"
+					><Plus size={16}/></button>
 			</div>
 
 			{/* Toolbar */}
-			<Toolbar selectedShape={selectedShape} setSelectedShape={setSelectedShape}/>
+			<div className="absolute bottom-6 left-1/2 bg-[#232329] transform -translate-x-1/2 flex space-x-4 rounded-lg shadow-lg p-1 animate-fade-in">
+				<Toolbar selectedShape={selectedShape} setSelectedShape={setSelectedShape}/>
+			</div>
 			<canvas ref={canvasRef}></canvas>
 		</div>
 	);
