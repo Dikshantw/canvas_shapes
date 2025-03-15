@@ -1,4 +1,4 @@
-import { Circle, Hand, Minus, MoveRight, RectangleHorizontal } from "lucide-react";
+import { Circle, Hand, Minus, MoveRight, Pencil, RectangleHorizontal } from "lucide-react";
 import { DrawingTools } from "../types/drawings";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
@@ -26,15 +26,20 @@ export default function Toolbar({selectedShape,setSelectedShape}: ToolbarProps) 
             label: "Circle"
         },
         {
+            name: "Arrow" as DrawingTools,
+            icon: <MoveRight size={18} color="#e3e3e8"/>,
+            label: "Arrow"
+        },
+        {
             name: "Line" as DrawingTools,
             icon: <Minus size={18} color="#e3e3e8"/>,
             label: "Line"
         },
         {
-            name: "Arrow" as DrawingTools,
-            icon: <MoveRight size={18} color="#e3e3e8"/>,
-            label: "Arrow"
-        }
+            name: "Pencil" as DrawingTools,
+            icon: <Pencil size={18} color="#e3e3e8"/>,
+            label: "Pencil"
+        },
     ];
     
     return (

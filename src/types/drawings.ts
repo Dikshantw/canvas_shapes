@@ -1,1 +1,1 @@
-export type DrawingTools = "Pan" | "Rectangle" | "Ellipse" | "Line" | "Arrow"
+export type DrawingTools = "Pan" | "Rectangle" | "Ellipse" | "Line" | "Arrow" | "Pencil"
